@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat Tancredo</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chat Tancredo com GPT-2</title>
 <style>
+  /* (mesmo CSS do seu código original, para brevidade não repito aqui) */
+  /* ... cole aqui o seu CSS original ... */
   body {
     font-family: Arial, sans-serif;
     display: flex;
@@ -95,7 +97,7 @@
 <div id="chat"></div>
 
 <div id="inputArea">
-  <input type="text" id="userInput" placeholder="Digite algo..." autofocus>
+  <input type="text" id="userInput" placeholder="Digite algo..." autofocus />
   <button id="sendBtn">Enviar</button>
   <button id="clearBtn">Limpar</button>
   <button id="themeBtn">Tema</button>
@@ -112,7 +114,7 @@ const clearBtn = document.getElementById("clearBtn");
 const fraseDiv = document.getElementById("fraseMotivacional");
 
 let temaAtual = 0;
-const temas = ["claro","escuro"];
+const temas = ["claro", "escuro"];
 let conversa = [];
 
 const frasesMotivacionaisOriginais = [
@@ -134,95 +136,84 @@ function addMessage(text, sender) {
   if (frasesMotivacionais.length === 0) frasesMotivacionais = [...frasesMotivacionaisOriginais];
   const idx = Math.floor(Math.random() * frasesMotivacionais.length);
   fraseDiv.textContent = frasesMotivacionais[idx];
-  frasesMotivacionais.splice(idx,1);
+  frasesMotivacionais.splice(idx, 1);
 }
 
-function equacaoSegundoGrau(a,b,c){
-  const delta = b*b - 4*a*c;
-  if(delta<0) return "A equação não tem raízes reais 😿";
-  if(delta===0) return `A raiz dupla é ${-b/(2*a)}`;
-  let x1 = (-b + Math.sqrt(delta))/(2*a);
-  let x2 = (-b - Math.sqrt(delta))/(2*a);
-  return `As raízes são ${x1} e ${x2}`;
-}
+async function gpt2Response(prompt) {
+  const API_URL = "https://api-inference.huggingface.co/models/gpt2";
+  const TOKEN = "31VoMSltB897CbzlM8wpZtu4Luh_2ugbistaNZVzEKsirnTTe"; // <-- substitua aqui pelo seu token Hugging Face
 
-function calcularExpressao(msg){
-  try{
-    msg = msg.replace(/\bvezes\b|x/g,'*')
-             .replace(/\bmais\b/g,'+')
-             .replace(/\bmenos\b/g,'-')
-             .replace(/\bdividido por\b/g,'/');
-    if(/^[0-9+\-*/().\s]+$/.test(msg)){
-      return "Resultado: " + eval(msg);
-    }
-  }catch{}
-  return null;
-}
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      inputs: prompt,
+      parameters: { max_length: 100, return_full_text: false }
+    })
+  });
 
-function botResponse(msg){
-  msg = msg.toLowerCase().trim();
-  if(msg.includes("mal")||msg.includes("triste")||msg.includes("depressivo")) return "Conversa com o Greguinho 💕";
-
-  if(msg.startsWith("equacao")){
-    let parts = msg.split(" ");
-    if(parts.length===4) return equacaoSegundoGrau(parseFloat(parts[1]),parseFloat(parts[2]),parseFloat(parts[3]));
-    else return "Use: equacao a b c (ex: equacao 2 2 6)";
+  if (!response.ok) {
+    return "Erro ao acessar a API da Hugging Face.";
   }
 
-  if(msg.startsWith("potencia")){
-    let parts = msg.split(" ");
-    if(parts.length===3) return `${parts[1]} ^ ${parts[2]} = ${Math.pow(parseFloat(parts[1]),parseFloat(parts[2]))}`;
-    else return "Use: potencia base expoente (ex: potencia 2 3)";
+  const data = await response.json();
+
+  // O resultado é um array com objetos que tem generated_text
+  if (Array.isArray(data) && data.length > 0 && data[0].generated_text) {
+    return data[0].generated_text.trim();
+  } else if (data.error) {
+    return "Erro da API: " + data.error;
+  } else {
+    return "Resposta inválida da API.";
   }
-
-  if(msg.startsWith("raiz")){
-    let parts = msg.split(" ");
-    if(parts.length===2){
-      let valor = parseFloat(parts[1]);
-      if(valor<0) return "Não existe raiz real 😿";
-      return `√${valor} = ${Math.sqrt(valor)}`;
-    } else return "Use: raiz numero (ex: raiz 25)";
-  }
-
-  const resultadoConta = calcularExpressao(msg);
-  if(resultadoConta) return resultadoConta;
-
-  if(msg.includes("oi")) return "Oi! Como você está? 😄";
-  if(msg.includes("tudo bem")) return "Tudo ótimo, e você?";
-  if(msg.includes("nome")) return "Eu sou o Chat Tancredo!";
-  if(msg.includes("histórico")||msg.includes("conversa")) return conversa.map(c=>(c.sender==="user"?"Você: ":"Chatbot: ")+c.text).join("\n");
-
-  const respostas=["Interessante! 😎","Hmm, me conta mais!","💡 Boa ideia!","😂 Haha, adorei!","🤔 Vou pensar sobre isso..."];
-  return respostas[Math.floor(Math.random()*respostas.length)];
 }
 
-function sendMessage(){
+async function sendMessage() {
   const userMsg = input.value.trim();
-  if(!userMsg) return;
-  addMessage(userMsg,"user");
-  conversa.push({sender:"user", text:userMsg});
-  const resposta = botResponse(userMsg);
-  addMessage(resposta,"bot");
-  conversa.push({sender:"bot", text:resposta});
-  input.value="";
+  if (!userMsg) return;
+
+  addMessage(userMsg, "user");
+  conversa.push({ sender: "user", text: userMsg });
+
+  addMessage("... escrevendo", "bot"); // feedback temporário
+  chat.lastChild.scrollIntoView();
+
+  // chama API GPT-2
+  const resposta = await gpt2Response(userMsg);
+
+  // Remove a mensagem "... escrevendo"
+  chat.removeChild(chat.lastChild);
+
+  addMessage(resposta, "bot");
+  conversa.push({ sender: "bot", text: resposta });
+
+  input.value = "";
+  input.focus();
 }
 
-function toggleTheme(){
+function toggleTheme() {
   temaAtual = (temaAtual + 1) % temas.length;
   document.body.className = temas[temaAtual];
 }
 
-function clearChat(){
-  chat.innerHTML="";
-  conversa=[];
-  frasesMotivacionais=[...frasesMotivacionaisOriginais];
-  fraseDiv.textContent="";
+function clearChat() {
+  chat.innerHTML = "";
+  conversa = [];
+  frasesMotivacionais = [...frasesMotivacionaisOriginais];
+  fraseDiv.textContent = "";
 }
 
-sendBtn.addEventListener("click",sendMessage);
-input.addEventListener("keypress",e=>{if(e.key==="Enter") sendMessage();});
-themeBtn.addEventListener("click",toggleTheme);
-clearBtn.addEventListener("click",clearChat);
+sendBtn.addEventListener("click", sendMessage);
+input.addEventListener("keypress", e => {
+  if (e.key === "Enter") sendMessage();
+});
+themeBtn.addEventListener("click", toggleTheme);
+clearBtn.addEventListener("click", clearChat);
+
 </script>
 </body>
 </html>
+
