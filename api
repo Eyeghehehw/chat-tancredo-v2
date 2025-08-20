@@ -1,0 +1,28 @@
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Use POST" });
+  }
+
+  try {
+    const hfResponse = await fetch("https://api-inference.huggingface.co/models/gpt2", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer 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",
+        "Content-Type": "application/json"
+      },
+      // repassa exatamente o corpo que veio do front
+      body: JSON.stringify({
+        ...(req.body || {}),
+        // garante que o modelo acorde se estiver dormindo
+        options: { wait_for_model: true, ...(req.body?.options || {}) }
+      })
+    });
+
+    const data = await hfResponse.json();
+
+    // repassa o status e o conteúdo de volta pro navegador
+    res.status(hfResponse.ok ? 200 : hfResponse.status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Falha ao contactar a Hugging Face", details: String(err) });
+  }
+}
