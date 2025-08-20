@@ -139,15 +139,37 @@ function addMessage(text, sender) {
   frasesMotivacionais.splice(idx, 1);
 }
 
+<script>
 async function gpt2Response(prompt) {
-  const API_URL = "https://api-inference.huggingface.co/models/gpt2";
-  const TOKEN = "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"; // <-- substitua aqui pelo seu token Hugging Face
+  const API_URL = "/api/gpt2"; // agora chama sua função serverless
 
   const response = await fetch(API_URL, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${TOKEN}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json" // não precisa Authorization aqui
+    },
+    body: JSON.stringify({
+      inputs: prompt,
+      parameters: { max_length: 100, return_full_text: false }
+      // se quiser, pode mandar options também:
+      // options: { wait_for_model: true }
+    })
+  });
+
+  if (!response.ok) {
+    return "Erro ao acessar a API (proxy) no Vercel.";
+  }
+
+  const data = await response.json();
+
+  if (Array.isArray(data) && data.length > 0 && data[0].generated_text) {
+    return data[0].generated_text.trim();
+  } else if (data.error) {
+    return "Erro da API: " + data.error;
+  } else {
+    return "Resposta inválida da API.";
+  }
+}
     },
     body: JSON.stringify({
       inputs: prompt,
