@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Chat Tancredo com GPT-2</title>
 <style>
-  /* (mesmo CSS do seu código original, para brevidade não repito aqui) */
-  /* ... cole aqui o seu CSS original ... */
   body {
     font-family: Arial, sans-serif;
     display: flex;
@@ -139,20 +137,15 @@ function addMessage(text, sender) {
   frasesMotivacionais.splice(idx, 1);
 }
 
-<script>
 async function gpt2Response(prompt) {
-  const API_URL = "/api/gpt2"; // agora chama sua função serverless
+  const API_URL = "/api/gpt2"; // chama o proxy no Vercel
 
   const response = await fetch(API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json" // não precisa Authorization aqui
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       inputs: prompt,
       parameters: { max_length: 100, return_full_text: false }
-      // se quiser, pode mandar options também:
-      // options: { wait_for_model: true }
     })
   });
 
@@ -170,28 +163,6 @@ async function gpt2Response(prompt) {
     return "Resposta inválida da API.";
   }
 }
-    },
-    body: JSON.stringify({
-      inputs: prompt,
-      parameters: { max_length: 100, return_full_text: false }
-    })
-  });
-
-  if (!response.ok) {
-    return "Erro ao acessar a API da Hugging Face.";
-  }
-
-  const data = await response.json();
-
-  // O resultado é um array com objetos que tem generated_text
-  if (Array.isArray(data) && data.length > 0 && data[0].generated_text) {
-    return data[0].generated_text.trim();
-  } else if (data.error) {
-    return "Erro da API: " + data.error;
-  } else {
-    return "Resposta inválida da API.";
-  }
-}
 
 async function sendMessage() {
   const userMsg = input.value.trim();
@@ -200,13 +171,11 @@ async function sendMessage() {
   addMessage(userMsg, "user");
   conversa.push({ sender: "user", text: userMsg });
 
-  addMessage("... escrevendo", "bot"); // feedback temporário
+  addMessage("... escrevendo", "bot"); 
   chat.lastChild.scrollIntoView();
 
-  // chama API GPT-2
   const resposta = await gpt2Response(userMsg);
 
-  // Remove a mensagem "... escrevendo"
   chat.removeChild(chat.lastChild);
 
   addMessage(resposta, "bot");
@@ -229,13 +198,9 @@ function clearChat() {
 }
 
 sendBtn.addEventListener("click", sendMessage);
-input.addEventListener("keypress", e => {
-  if (e.key === "Enter") sendMessage();
-});
+input.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
 themeBtn.addEventListener("click", toggleTheme);
 clearBtn.addEventListener("click", clearChat);
-
 </script>
 </body>
 </html>
-
